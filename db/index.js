@@ -133,20 +133,45 @@ async function updatePost(id, fields = {}) {
       user.posts = userPosts;
 
       return user;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  async function createTags(tagList) {
+    if (tagList.length === 0) { 
+      return; 
+    }
+  
+    // need something like: $1), ($2), ($3 
+    const insertValues = tagList.map(
+      (_, index) => `${index + 1}`).join('), (');
+    // then we can use: (${ insertValues }) in our string template
+  
+    // need something like $1, $2, $3
+    const selectValues = tagList.map(
+      (_, index) => `${index + 1}`).join(', ');
+    // then we can use (${ selectValues }) in our string template
+  
+    try {
+      const {rows: [tags] } = await client.query(`
+      INSERT INTO tags(name)
+      VALUES ($1), ($2), ($3)
+      ON CONFLICT (name) DO NOTHING;
+      SELECT * FROM tags
+      WHERE name
+      IN ($1, $2, $3);
+      `)
+     
+      // insert the tags, doing nothing on conflict
+      // returning nothing, we'll query after
+  
+      // select all tags where the name is in our taglist
+      // return the rows from the query
+    } catch (error) {
+      throw error;
     }
   }
-    // first get the user (NOTE: Remember the query returns 
-      // (1) an object that contains 
-      // (2) a `ro` array that (in this case) will contain 
-      // (3) one object, which is our user.
-    // if it doesn't exist (if there are no `row` or `.length`), return null
-  
-    // if it does:
-    // delete the 'password' key from the returned object
-    // get their posts (use getPostsByUser)
-    // then add the posts to the user object with key 'posts'
-    // return the user object
-  
 
 module.exports = {
     client,
