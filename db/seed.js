@@ -3,6 +3,8 @@ const {
     getAllUsers,
     createUser,
     updateUser,
+    createPost,
+    addTagsToPost,
   } = require('./index');
   
   async function dropTables() {
@@ -52,7 +54,7 @@ const {
       throw error;
     }
   }
-  
+
   async function createInitialUsers() {
     try {
       console.log("Starting to create users...");
@@ -87,7 +89,35 @@ const {
         title: "First time",
         content: "This is my first post. I hope I love writing blogs as much as I love writing them."
       });
-
+    } catch (error) {
+      throw error;
+    }
+  }
+  
+  async function createInitialTags() {
+    try {
+      console.log("Starting to create tags...");
+  
+      const [happy, sad, inspo, catman] = await createTags([
+        '#happy', 
+        '#worst-day-ever', 
+        '#youcandoanything',
+        '#catmandoeverything'
+      ]);
+  
+      const [postOne, postTwo, postThree] = await getAllPosts();
+  
+      await addTagsToPost(postOne.id, [happy, inspo]);
+      await addTagsToPost(postTwo.id, [sad, inspo]);
+      await addTagsToPost(postThree.id, [happy, catman, inspo]);
+  
+      console.log("Finished creating tags!");
+    } catch (error) {
+      console.log("Error creating tags!");
+      throw error;
+    }
+  }
+  
   async function rebuildDB() {
     try {
       client.connect();
@@ -96,16 +126,13 @@ const {
       await createTables();
       await createInitialUsers();
       await createInitialPosts();
-          // a couple more
-        } catch (error) {
-          throw error;
-        }
-      }
+      await createInitialTags(); // new
     } catch (error) {
+      console.log("Error during rebuildDB")
       throw error;
     }
   }
-  
+
   async function testDB() {
     try {
       console.log("Starting to test database...");
