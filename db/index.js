@@ -60,9 +60,8 @@ async function getAllUsers () {
 async function createPost ({authorId, title, content}) {
     try {
         const { rows } = await client.query(`
-        INSERT INTO posts(authorId, title, content)
+        INSERT INTO posts("authorId", title, content)
         VALUES ($1, $2, $3)
-        ON CONFLICT (username) DO NOTHING
         RETURNING *;
       `, [authorId, title, content]);
   
@@ -97,7 +96,7 @@ async function updatePost(id, fields = {}) {
   async function getAllPosts() {
     try {
         const { rows } = await client.query(
-            `SELECT authorId, title, content
+            `SELECT "authorId", title, content
             
             FROM posts;
             `)
@@ -145,23 +144,25 @@ async function updatePost(id, fields = {}) {
   
     // need something like: $1), ($2), ($3 
     const insertValues = tagList.map(
-      (tags) => `${ tags }`).join('), (');
+      (_, index) => `$${ index + 1 }`).join("), (");
     // then we can use: (${ insertValues }) in our string template
   
     // need something like $1, $2, $3
     const selectValues = tagList.map(
-      (tags) => `${ tags }`).join(', ');
+      (_, index) => `$${ index + 1 }`).join(", ");
     // then we can use (${ selectValues }) in our string template
   
     try {
-      const {rows: [tags] } = await client.query(`
+      await client.query(`
       INSERT INTO tags(name)
-      VALUES ($1), ($2), ($3)
-      ON CONFLICT (name) DO NOTHING;
+      VALUES(${insertValues})
+      ON CONFLICT (name) DO NOTHING
+      `, tagList
+      );
+      const {rows: tags} = await client.query(`
       SELECT * FROM tags
-      WHERE name
-      IN ($1, $2, $3);
-      `)
+      WHERE name IN (${selectValues});
+      `, tagList)
       return tags;
     } catch (error) {
       throw error;
@@ -213,7 +214,7 @@ async function updatePost(id, fields = {}) {
         SELECT id, username, name, location
         FROM users
         WHERE id=$1;
-      `, [post.authorId])
+      `, [post])
   
       post.tags = tags;
       post.author = author;
@@ -225,7 +226,7 @@ async function updatePost(id, fields = {}) {
       throw error;
     }
   }
-  
+
 module.exports = {
     client,
     getAllUsers,

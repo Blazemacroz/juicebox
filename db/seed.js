@@ -5,6 +5,8 @@ const {
     updateUser,
     createPost,
     addTagsToPost,
+    createTags,
+    getAllPosts,
   } = require('./index');
   
   async function dropTables() {
@@ -12,10 +14,10 @@ const {
       console.log("Starting to drop tables...");
   
       await client.query(`
-        DROP TABLE IF EXISTS posts;
-        DROP TABLE IF EXISTS users;
-        DROP TABLE IF EXISTS post_tags;
-        DROP TABLE IF EXISTS tags;
+      DROP TABLE IF EXISTS users cascade;
+        DROP TABLE IF EXISTS posts cascade;
+        DROP TABLE IF EXISTS tags cascade;
+        DROP TABLE IF EXISTS post_tags cascade;
       `);
   
       console.log("Finished dropping tables!");
@@ -46,6 +48,15 @@ const {
             content TEXT NOT NULL,
             active BOOLEAN DEFAULT true
             );
+        CREATE TABLE tags (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(255) UNIQUE NOT NULL
+        );
+        CREATE TABLE post_tags (
+          "postId" INTEGER REFERENCES posts(id),
+          "tagId" INTEGER REFERENCES tags(id),
+          CONSTRAINT UC_tags UNIQUE ("postId", "tagId")
+        )
       `);
   
       console.log("Finished building tables!");
@@ -117,7 +128,7 @@ const {
       throw error;
     }
   }
-  
+
   async function rebuildDB() {
     try {
       client.connect();
@@ -126,7 +137,7 @@ const {
       await createTables();
       await createInitialUsers();
       await createInitialPosts();
-      await createInitialTags(); // new
+      await createInitialTags(); 
     } catch (error) {
       console.log("Error during rebuildDB")
       throw error;
